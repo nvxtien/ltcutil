@@ -18,8 +18,11 @@ var (
 	// No need to allocate an err variable in every test
 	err error
 
-	// Collision probability for the tests (1/2**20)
-	P = uint8(20)
+	// Collision probability for the tests (1/2**19)
+	P = uint8(19)
+
+	// Modulus value for the tests.
+	M uint64 = 784931
 
 	// Filters are conserved between tests but we must define with an
 	// interface which functions we're testing because the gcsFilter type
@@ -79,7 +82,7 @@ func TestGCSFilterBuild(t *testing.T) {
 	for i := 0; i < gcs.KeySize; i += 4 {
 		binary.BigEndian.PutUint32(key[i:], rand.Uint32())
 	}
-	filter, err = gcs.BuildGCSFilter(P, key, contents)
+	filter, err = gcs.BuildGCSFilter(P, M, key, contents)
 	if err != nil {
 		t.Fatalf("Filter build failed: %s", err.Error())
 	}
@@ -87,19 +90,19 @@ func TestGCSFilterBuild(t *testing.T) {
 
 // TestGCSFilterCopy deserializes and serializes a filter to create a copy.
 func TestGCSFilterCopy(t *testing.T) {
-	filter2, err = gcs.FromBytes(filter.N(), P, filter.Bytes())
+	serialized2, err := filter.Bytes()
+	if err != nil {
+		t.Fatalf("Filter Bytes() failed: %v", err)
+	}
+	filter2, err = gcs.FromBytes(filter.N(), P, M, serialized2)
 	if err != nil {
 		t.Fatalf("Filter copy failed: %s", err.Error())
 	}
-	filter3, err = gcs.FromNBytes(filter.P(), filter.NBytes())
+	serialized3, err := filter.NBytes()
 	if err != nil {
-		t.Fatalf("Filter copy failed: %s", err.Error())
+		t.Fatalf("Filter NBytes() failed: %v", err)
 	}
-	filter4, err = gcs.FromPBytes(filter.N(), filter.PBytes())
-	if err != nil {
-		t.Fatalf("Filter copy failed: %s", err.Error())
-	}
-	filter5, err = gcs.FromNPBytes(filter.NPBytes())
+	filter3, err = gcs.FromNBytes(filter.P(), M, serialized3)
 	if err != nil {
 		t.Fatalf("Filter copy failed: %s", err.Error())
 	}
@@ -120,34 +123,35 @@ func TestGCSFilterMetadata(t *testing.T) {
 	if filter.P() != filter3.P() {
 		t.Fatal("P doesn't match between copied filters")
 	}
-	if filter.P() != filter4.P() {
-		t.Fatal("P doesn't match between copied filters")
-	}
-	if filter.P() != filter5.P() {
-		t.Fatal("P doesn't match between copied filters")
-	}
 	if filter.N() != filter2.N() {
 		t.Fatal("N doesn't match between copied filters")
 	}
 	if filter.N() != filter3.N() {
 		t.Fatal("N doesn't match between copied filters")
 	}
-	if filter.N() != filter4.N() {
-		t.Fatal("N doesn't match between copied filters")
+	serialized, err := filter.Bytes()
+	if err != nil {
+		t.Fatalf("Filter Bytes() failed: %v", err)
 	}
-	if filter.N() != filter5.N() {
-		t.Fatal("N doesn't match between copied filters")
+	serialized2, err := filter2.Bytes()
+	if err != nil {
+		t.Fatalf("Filter Bytes() failed: %v", err)
 	}
-	if !bytes.Equal(filter.Bytes(), filter2.Bytes()) {
+	if !bytes.Equal(serialized, serialized2) {
 		t.Fatal("Bytes don't match between copied filters")
 	}
-	if !bytes.Equal(filter.Bytes(), filter3.Bytes()) {
+	serialized3, err := filter3.Bytes()
+	if err != nil {
+		t.Fatalf("Filter Bytes() failed: %v", err)
+	}
+	if !bytes.Equal(serialized, serialized3) {
 		t.Fatal("Bytes don't match between copied filters")
 	}
-	if !bytes.Equal(filter.Bytes(), filter4.Bytes()) {
-		t.Fatal("Bytes don't match between copied filters")
+	serialized4, err := filter3.Bytes()
+	if err != nil {
+		t.Fatalf("Filter Bytes() failed: %v", err)
 	}
-	if !bytes.Equal(filter.Bytes(), filter5.Bytes()) {
+	if !bytes.Equal(serialized, serialized4) {
 		t.Fatal("Bytes don't match between copied filters")
 	}
 }
