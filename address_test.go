@@ -12,32 +12,57 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/btcsuite/golangcrypto/ripemd160"
 	"github.com/ltcsuite/ltcd/chaincfg"
 	"github.com/ltcsuite/ltcutil"
+	"golang.org/x/crypto/ripemd160"
 )
 
 type CustomParamStruct struct {
 	PubKeyHashAddrID byte
 	ScriptHashAddrID byte
-}
-
-var CustomParams = CustomParamStruct{
-	PubKeyHashAddrID: 0x30, // starts with L
-	ScriptHashAddrID: 0x32, // starts with M
+	Bech32HRPSegwit string
 }
 
 // We use this function to be able to test functionality in DecodeAddress for
 // defaultNet addresses
 func applyCustomParams(params chaincfg.Params, customParams CustomParamStruct) chaincfg.Params {
-	params.PubKeyHashAddrID = customParams.PubKeyHashAddrID
-	params.ScriptHashAddrID = customParams.ScriptHashAddrID
-	return params
+    newParams := params
+	newParams.PubKeyHashAddrID = customParams.PubKeyHashAddrID
+	newParams.ScriptHashAddrID = customParams.ScriptHashAddrID
+	newParams.Bech32HRPSegwit  = customParams.Bech32HRPSegwit
+	return newParams
 }
 
-var customParams = applyCustomParams(chaincfg.MainNetParams, CustomParams)
 
 func TestAddresses(t *testing.T) {
+    var paramsLtc = applyCustomParams(chaincfg.MainNetParams, CustomParamStruct{
+	    PubKeyHashAddrID: 0x30, // starts with L
+	    ScriptHashAddrID: 0x32, // starts with M
+	    Bech32HRPSegwit:  "ltc", // always ltc for main net
+    })
+
+    var paramsLtcTestnet = applyCustomParams(chaincfg.MainNetParams, CustomParamStruct{
+	    PubKeyHashAddrID: 0x6F, // starts with m or n
+	    ScriptHashAddrID: 0x3A, // starts with Q
+	    Bech32HRPSegwit:  "tltc", // always tltc for test net
+    })
+
+    var paramsBtc = applyCustomParams(chaincfg.MainNetParams, CustomParamStruct{
+	    PubKeyHashAddrID: 0x00, // starts with 1
+	    ScriptHashAddrID: 0x05, // starts with 3
+	    Bech32HRPSegwit:  "bc", // always bc for main net
+    })
+    paramsBtc.Net = 0xd9b4bef9          // bitcoin MainNet
+    chaincfg.Register(&paramsBtc)
+
+    var paramsBtcTestnet = applyCustomParams(chaincfg.MainNetParams, CustomParamStruct{
+	    PubKeyHashAddrID: 0x6F, // starts with m or n
+	    ScriptHashAddrID: 0xC4, // starts with 2
+	    Bech32HRPSegwit:  "tb", // always tb for test net
+    })
+    paramsBtcTestnet.Net = 0x0709110b   // bitcoin TestNet3
+    chaincfg.Register(&paramsBtcTestnet)
+
 	tests := []struct {
 		name    string
 		addr    string
@@ -57,14 +82,14 @@ func TestAddresses(t *testing.T) {
 				[ripemd160.Size]byte{
 					0xe3, 0x4c, 0xce, 0x70, 0xc8, 0x63, 0x73, 0x27, 0x3e, 0xfc,
 					0xc5, 0x4c, 0xe7, 0xd2, 0xa4, 0x91, 0xbb, 0x4a, 0x0e, 0x84},
-				chaincfg.MainNetParams.PubKeyHashAddrID),
+				paramsBtc.PubKeyHashAddrID),
 			f: func() (ltcutil.Address, error) {
 				pkHash := []byte{
 					0xe3, 0x4c, 0xce, 0x70, 0xc8, 0x63, 0x73, 0x27, 0x3e, 0xfc,
 					0xc5, 0x4c, 0xe7, 0xd2, 0xa4, 0x91, 0xbb, 0x4a, 0x0e, 0x84}
-				return ltcutil.NewAddressPubKeyHash(pkHash, &chaincfg.MainNetParams)
+				return ltcutil.NewAddressPubKeyHash(pkHash, &paramsBtc)
 			},
-			net: &chaincfg.MainNetParams,
+			net: &paramsBtc,
 		},
 		{
 			name:    "mainnet p2pkh 2",
@@ -75,32 +100,32 @@ func TestAddresses(t *testing.T) {
 				[ripemd160.Size]byte{
 					0x0e, 0xf0, 0x30, 0x10, 0x7f, 0xd2, 0x6e, 0x0b, 0x6b, 0xf4,
 					0x05, 0x12, 0xbc, 0xa2, 0xce, 0xb1, 0xdd, 0x80, 0xad, 0xaa},
-				chaincfg.MainNetParams.PubKeyHashAddrID),
+				paramsBtc.PubKeyHashAddrID),
 			f: func() (ltcutil.Address, error) {
 				pkHash := []byte{
 					0x0e, 0xf0, 0x30, 0x10, 0x7f, 0xd2, 0x6e, 0x0b, 0x6b, 0xf4,
 					0x05, 0x12, 0xbc, 0xa2, 0xce, 0xb1, 0xdd, 0x80, 0xad, 0xaa}
-				return ltcutil.NewAddressPubKeyHash(pkHash, &chaincfg.MainNetParams)
+				return ltcutil.NewAddressPubKeyHash(pkHash, &paramsBtc)
 			},
-			net: &chaincfg.MainNetParams,
+			net: &paramsBtc,
 		},
 		{
 			name:    "litecoin mainnet p2pkh",
 			addr:    "LM2WMpR1Rp6j3Sa59cMXMs1SPzj9eXpGc1",
 			encoded: "LM2WMpR1Rp6j3Sa59cMXMs1SPzj9eXpGc1",
 			valid:   true,
-			result: btcutil.TstAddressPubKeyHash(
+			result: ltcutil.TstAddressPubKeyHash(
 				[ripemd160.Size]byte{
 					0x13, 0xc6, 0x0d, 0x8e, 0x68, 0xd7, 0x34, 0x9f, 0x5b, 0x4c,
 					0xa3, 0x62, 0xc3, 0x95, 0x4b, 0x15, 0x04, 0x50, 0x61, 0xb1},
-				CustomParams.PubKeyHashAddrID),
-			f: func() (btcutil.Address, error) {
+				paramsLtc.PubKeyHashAddrID),
+			f: func() (ltcutil.Address, error) {
 				pkHash := []byte{
 					0x13, 0xc6, 0x0d, 0x8e, 0x68, 0xd7, 0x34, 0x9f, 0x5b, 0x4c,
 					0xa3, 0x62, 0xc3, 0x95, 0x4b, 0x15, 0x04, 0x50, 0x61, 0xb1}
-				return btcutil.NewAddressPubKeyHash(pkHash, &customParams)
+				return ltcutil.NewAddressPubKeyHash(pkHash, &paramsLtc)
 			},
-			net: &customParams,
+			net: &paramsLtc,
 		},
 		{
 			name:    "testnet p2pkh",
@@ -111,14 +136,14 @@ func TestAddresses(t *testing.T) {
 				[ripemd160.Size]byte{
 					0x78, 0xb3, 0x16, 0xa0, 0x86, 0x47, 0xd5, 0xb7, 0x72, 0x83,
 					0xe5, 0x12, 0xd3, 0x60, 0x3f, 0x1f, 0x1c, 0x8d, 0xe6, 0x8f},
-				chaincfg.TestNet3Params.PubKeyHashAddrID),
+				paramsLtcTestnet.PubKeyHashAddrID),
 			f: func() (ltcutil.Address, error) {
 				pkHash := []byte{
 					0x78, 0xb3, 0x16, 0xa0, 0x86, 0x47, 0xd5, 0xb7, 0x72, 0x83,
 					0xe5, 0x12, 0xd3, 0x60, 0x3f, 0x1f, 0x1c, 0x8d, 0xe6, 0x8f}
-				return ltcutil.NewAddressPubKeyHash(pkHash, &chaincfg.TestNet3Params)
+				return ltcutil.NewAddressPubKeyHash(pkHash, &paramsLtcTestnet)
 			},
-			net: &chaincfg.TestNet3Params,
+			net: &paramsLtcTestnet,
 		},
 
 		// Negative P2PKH tests.
@@ -155,7 +180,7 @@ func TestAddresses(t *testing.T) {
 				[ripemd160.Size]byte{
 					0xf8, 0x15, 0xb0, 0x36, 0xd9, 0xbb, 0xbc, 0xe5, 0xe9, 0xf2,
 					0xa0, 0x0a, 0xbd, 0x1b, 0xf3, 0xdc, 0x91, 0xe9, 0x55, 0x10},
-				chaincfg.MainNetParams.ScriptHashAddrID),
+				paramsBtc.ScriptHashAddrID),
 			f: func() (ltcutil.Address, error) {
 				script := []byte{
 					0x52, 0x41, 0x04, 0x91, 0xbb, 0xa2, 0x51, 0x09, 0x12, 0xa5,
@@ -179,27 +204,27 @@ func TestAddresses(t *testing.T) {
 					0xdb, 0xfb, 0x1e, 0x75, 0x4e, 0x35, 0xfa, 0x1c, 0x78, 0x44,
 					0xc4, 0x1f, 0x32, 0x2a, 0x18, 0x63, 0xd4, 0x62, 0x13, 0x53,
 					0xae}
-				return ltcutil.NewAddressScriptHash(script, &chaincfg.MainNetParams)
+				return ltcutil.NewAddressScriptHash(script, &paramsBtc)
 			},
-			net: &chaincfg.MainNetParams,
+			net: &paramsBtc,
 		},
 		{
 			name:    "litecoin mainnet P2SH ",
 			addr:    "MVcg9uEvtWuP5N6V48EHfEtbz48qR8TKZ9",
 			encoded: "MVcg9uEvtWuP5N6V48EHfEtbz48qR8TKZ9",
 			valid:   true,
-			result: btcutil.TstAddressScriptHash(
+			result: ltcutil.TstAddressScriptHash(
 				[ripemd160.Size]byte{
 					0xee, 0x34, 0xac, 0x67, 0x6b, 0xda, 0xf6, 0xe3, 0x70, 0xc8,
 					0xc8, 0x20, 0xb9, 0x48, 0xed, 0xfa, 0xd3, 0xa8, 0x73, 0xd8},
-				CustomParams.ScriptHashAddrID),
-			f: func() (btcutil.Address, error) {
+				paramsLtc.ScriptHashAddrID),
+			f: func() (ltcutil.Address, error) {
 				pkHash := []byte{
 					0xEE, 0x34, 0xAC, 0x67, 0x6B, 0xDA, 0xF6, 0xE3, 0x70, 0xC8,
 					0xC8, 0x20, 0xB9, 0x48, 0xED, 0xFA, 0xD3, 0xA8, 0x73, 0xD8}
-				return btcutil.NewAddressScriptHashFromHash(pkHash, &customParams)
+				return ltcutil.NewAddressScriptHashFromHash(pkHash, &paramsLtc)
 			},
-			net: &customParams,
+			net: &paramsLtc,
 		},
 		{
 			// Taken from transactions:
@@ -213,17 +238,17 @@ func TestAddresses(t *testing.T) {
 				[ripemd160.Size]byte{
 					0xe8, 0xc3, 0x00, 0xc8, 0x79, 0x86, 0xef, 0xa8, 0x4c, 0x37,
 					0xc0, 0x51, 0x99, 0x29, 0x01, 0x9e, 0xf8, 0x6e, 0xb5, 0xb4},
-				chaincfg.MainNetParams.ScriptHashAddrID),
+				paramsBtc.ScriptHashAddrID),
 			f: func() (ltcutil.Address, error) {
 				hash := []byte{
 					0xe8, 0xc3, 0x00, 0xc8, 0x79, 0x86, 0xef, 0xa8, 0x4c, 0x37,
 					0xc0, 0x51, 0x99, 0x29, 0x01, 0x9e, 0xf8, 0x6e, 0xb5, 0xb4}
-				return ltcutil.NewAddressScriptHashFromHash(hash, &chaincfg.MainNetParams)
+				return ltcutil.NewAddressScriptHashFromHash(hash, &paramsBtc)
 			},
-			net: &chaincfg.MainNetParams,
+			net: &paramsBtc,
 		},
 		{
-			// Taken from litecoind base58_keys_valid.
+			// Taken from bitcoind base58_keys_valid.
 			name:    "testnet p2sh",
 			addr:    "2NBFNJTktNa7GZusGbDbGKRZTxdK9VVez3n",
 			encoded: "2NBFNJTktNa7GZusGbDbGKRZTxdK9VVez3n",
@@ -232,14 +257,14 @@ func TestAddresses(t *testing.T) {
 				[ripemd160.Size]byte{
 					0xc5, 0x79, 0x34, 0x2c, 0x2c, 0x4c, 0x92, 0x20, 0x20, 0x5e,
 					0x2c, 0xdc, 0x28, 0x56, 0x17, 0x04, 0x0c, 0x92, 0x4a, 0x0a},
-				chaincfg.TestNet3Params.ScriptHashAddrID),
+				paramsBtcTestnet.ScriptHashAddrID),
 			f: func() (ltcutil.Address, error) {
 				hash := []byte{
 					0xc5, 0x79, 0x34, 0x2c, 0x2c, 0x4c, 0x92, 0x20, 0x20, 0x5e,
 					0x2c, 0xdc, 0x28, 0x56, 0x17, 0x04, 0x0c, 0x92, 0x4a, 0x0a}
-				return ltcutil.NewAddressScriptHashFromHash(hash, &chaincfg.TestNet3Params)
+				return ltcutil.NewAddressScriptHashFromHash(hash, &paramsBtcTestnet)
 			},
-			net: &chaincfg.TestNet3Params,
+			net: &paramsBtcTestnet,
 		},
 
 		// Negative P2SH tests.
@@ -269,16 +294,16 @@ func TestAddresses(t *testing.T) {
 					0x69, 0xc2, 0xe7, 0x79, 0x01, 0x57, 0x3d, 0x8d, 0x79, 0x03,
 					0xc3, 0xeb, 0xec, 0x3a, 0x95, 0x77, 0x24, 0x89, 0x5d, 0xca,
 					0x52, 0xc6, 0xb4},
-				ltcutil.PKFCompressed, chaincfg.MainNetParams.PubKeyHashAddrID),
+				ltcutil.PKFCompressed, paramsBtc.PubKeyHashAddrID),
 			f: func() (ltcutil.Address, error) {
 				serializedPubKey := []byte{
 					0x02, 0x19, 0x2d, 0x74, 0xd0, 0xcb, 0x94, 0x34, 0x4c, 0x95,
 					0x69, 0xc2, 0xe7, 0x79, 0x01, 0x57, 0x3d, 0x8d, 0x79, 0x03,
 					0xc3, 0xeb, 0xec, 0x3a, 0x95, 0x77, 0x24, 0x89, 0x5d, 0xca,
 					0x52, 0xc6, 0xb4}
-				return ltcutil.NewAddressPubKey(serializedPubKey, &chaincfg.MainNetParams)
+				return ltcutil.NewAddressPubKey(serializedPubKey, &paramsBtc)
 			},
-			net: &chaincfg.MainNetParams,
+			net: &paramsBtc,
 		},
 		{
 			name:    "mainnet p2pk compressed (0x03)",
@@ -291,16 +316,16 @@ func TestAddresses(t *testing.T) {
 					0xe9, 0x86, 0xe8, 0x84, 0x18, 0x5c, 0x61, 0xcf, 0x43, 0xe0,
 					0x01, 0xf9, 0x13, 0x7f, 0x23, 0xc2, 0xc4, 0x09, 0x27, 0x3e,
 					0xb1, 0x6e, 0x65},
-				ltcutil.PKFCompressed, chaincfg.MainNetParams.PubKeyHashAddrID),
+				ltcutil.PKFCompressed, paramsBtc.PubKeyHashAddrID),
 			f: func() (ltcutil.Address, error) {
 				serializedPubKey := []byte{
 					0x03, 0xb0, 0xbd, 0x63, 0x42, 0x34, 0xab, 0xbb, 0x1b, 0xa1,
 					0xe9, 0x86, 0xe8, 0x84, 0x18, 0x5c, 0x61, 0xcf, 0x43, 0xe0,
 					0x01, 0xf9, 0x13, 0x7f, 0x23, 0xc2, 0xc4, 0x09, 0x27, 0x3e,
 					0xb1, 0x6e, 0x65}
-				return ltcutil.NewAddressPubKey(serializedPubKey, &chaincfg.MainNetParams)
+				return ltcutil.NewAddressPubKey(serializedPubKey, &paramsBtc)
 			},
-			net: &chaincfg.MainNetParams,
+			net: &paramsBtc,
 		},
 		{
 			name: "mainnet p2pk uncompressed (0x04)",
@@ -317,7 +342,7 @@ func TestAddresses(t *testing.T) {
 					0xf9, 0x74, 0x44, 0x64, 0xf8, 0x2e, 0x16, 0x0b, 0xfa, 0x9b,
 					0x8b, 0x64, 0xf9, 0xd4, 0xc0, 0x3f, 0x99, 0x9b, 0x86, 0x43,
 					0xf6, 0x56, 0xb4, 0x12, 0xa3},
-				ltcutil.PKFUncompressed, chaincfg.MainNetParams.PubKeyHashAddrID),
+				ltcutil.PKFUncompressed, paramsBtc.PubKeyHashAddrID),
 			f: func() (ltcutil.Address, error) {
 				serializedPubKey := []byte{
 					0x04, 0x11, 0xdb, 0x93, 0xe1, 0xdc, 0xdb, 0x8a, 0x01, 0x6b,
@@ -327,9 +352,9 @@ func TestAddresses(t *testing.T) {
 					0xf9, 0x74, 0x44, 0x64, 0xf8, 0x2e, 0x16, 0x0b, 0xfa, 0x9b,
 					0x8b, 0x64, 0xf9, 0xd4, 0xc0, 0x3f, 0x99, 0x9b, 0x86, 0x43,
 					0xf6, 0x56, 0xb4, 0x12, 0xa3}
-				return ltcutil.NewAddressPubKey(serializedPubKey, &chaincfg.MainNetParams)
+				return ltcutil.NewAddressPubKey(serializedPubKey, &paramsBtc)
 			},
-			net: &chaincfg.MainNetParams,
+			net: &paramsBtc,
 		},
 		{
 			name: "mainnet p2pk hybrid (0x06)",
@@ -346,7 +371,7 @@ func TestAddresses(t *testing.T) {
 					0x96, 0x85, 0x26, 0x62, 0xce, 0x6a, 0x84, 0x7b, 0x19, 0x73,
 					0x76, 0x83, 0x01, 0x60, 0xc6, 0xd2, 0xeb, 0x5e, 0x6a, 0x4c,
 					0x44, 0xd3, 0x3f, 0x45, 0x3e},
-				ltcutil.PKFHybrid, chaincfg.MainNetParams.PubKeyHashAddrID),
+				ltcutil.PKFHybrid, paramsBtc.PubKeyHashAddrID),
 			f: func() (ltcutil.Address, error) {
 				serializedPubKey := []byte{
 					0x06, 0x19, 0x2d, 0x74, 0xd0, 0xcb, 0x94, 0x34, 0x4c, 0x95,
@@ -356,9 +381,9 @@ func TestAddresses(t *testing.T) {
 					0x96, 0x85, 0x26, 0x62, 0xce, 0x6a, 0x84, 0x7b, 0x19, 0x73,
 					0x76, 0x83, 0x01, 0x60, 0xc6, 0xd2, 0xeb, 0x5e, 0x6a, 0x4c,
 					0x44, 0xd3, 0x3f, 0x45, 0x3e}
-				return ltcutil.NewAddressPubKey(serializedPubKey, &chaincfg.MainNetParams)
+				return ltcutil.NewAddressPubKey(serializedPubKey, &paramsBtc)
 			},
-			net: &chaincfg.MainNetParams,
+			net: &paramsBtc,
 		},
 		{
 			name: "mainnet p2pk hybrid (0x07)",
@@ -375,7 +400,7 @@ func TestAddresses(t *testing.T) {
 					0x8a, 0x7e, 0xf8, 0xbd, 0x3b, 0x3c, 0xfb, 0x1e, 0xdb, 0x71,
 					0x17, 0xab, 0x65, 0x12, 0x9b, 0x8a, 0x2e, 0x68, 0x1f, 0x3c,
 					0x1e, 0x09, 0x08, 0xef, 0x7b},
-				ltcutil.PKFHybrid, chaincfg.MainNetParams.PubKeyHashAddrID),
+				ltcutil.PKFHybrid, paramsBtc.PubKeyHashAddrID),
 			f: func() (ltcutil.Address, error) {
 				serializedPubKey := []byte{
 					0x07, 0xb0, 0xbd, 0x63, 0x42, 0x34, 0xab, 0xbb, 0x1b, 0xa1,
@@ -385,9 +410,9 @@ func TestAddresses(t *testing.T) {
 					0x8a, 0x7e, 0xf8, 0xbd, 0x3b, 0x3c, 0xfb, 0x1e, 0xdb, 0x71,
 					0x17, 0xab, 0x65, 0x12, 0x9b, 0x8a, 0x2e, 0x68, 0x1f, 0x3c,
 					0x1e, 0x09, 0x08, 0xef, 0x7b}
-				return ltcutil.NewAddressPubKey(serializedPubKey, &chaincfg.MainNetParams)
+				return ltcutil.NewAddressPubKey(serializedPubKey, &paramsBtc)
 			},
-			net: &chaincfg.MainNetParams,
+			net: &paramsBtc,
 		},
 		{
 			name:    "testnet p2pk compressed (0x02)",
@@ -400,16 +425,16 @@ func TestAddresses(t *testing.T) {
 					0x69, 0xc2, 0xe7, 0x79, 0x01, 0x57, 0x3d, 0x8d, 0x79, 0x03,
 					0xc3, 0xeb, 0xec, 0x3a, 0x95, 0x77, 0x24, 0x89, 0x5d, 0xca,
 					0x52, 0xc6, 0xb4},
-				ltcutil.PKFCompressed, chaincfg.TestNet3Params.PubKeyHashAddrID),
+				ltcutil.PKFCompressed, paramsLtcTestnet.PubKeyHashAddrID),
 			f: func() (ltcutil.Address, error) {
 				serializedPubKey := []byte{
 					0x02, 0x19, 0x2d, 0x74, 0xd0, 0xcb, 0x94, 0x34, 0x4c, 0x95,
 					0x69, 0xc2, 0xe7, 0x79, 0x01, 0x57, 0x3d, 0x8d, 0x79, 0x03,
 					0xc3, 0xeb, 0xec, 0x3a, 0x95, 0x77, 0x24, 0x89, 0x5d, 0xca,
 					0x52, 0xc6, 0xb4}
-				return ltcutil.NewAddressPubKey(serializedPubKey, &chaincfg.TestNet3Params)
+				return ltcutil.NewAddressPubKey(serializedPubKey, &paramsLtcTestnet)
 			},
-			net: &chaincfg.TestNet3Params,
+			net: &paramsLtcTestnet,
 		},
 		{
 			name:    "testnet p2pk compressed (0x03)",
@@ -422,16 +447,16 @@ func TestAddresses(t *testing.T) {
 					0xe9, 0x86, 0xe8, 0x84, 0x18, 0x5c, 0x61, 0xcf, 0x43, 0xe0,
 					0x01, 0xf9, 0x13, 0x7f, 0x23, 0xc2, 0xc4, 0x09, 0x27, 0x3e,
 					0xb1, 0x6e, 0x65},
-				ltcutil.PKFCompressed, chaincfg.TestNet3Params.PubKeyHashAddrID),
+				ltcutil.PKFCompressed, paramsLtcTestnet.PubKeyHashAddrID),
 			f: func() (ltcutil.Address, error) {
 				serializedPubKey := []byte{
 					0x03, 0xb0, 0xbd, 0x63, 0x42, 0x34, 0xab, 0xbb, 0x1b, 0xa1,
 					0xe9, 0x86, 0xe8, 0x84, 0x18, 0x5c, 0x61, 0xcf, 0x43, 0xe0,
 					0x01, 0xf9, 0x13, 0x7f, 0x23, 0xc2, 0xc4, 0x09, 0x27, 0x3e,
 					0xb1, 0x6e, 0x65}
-				return ltcutil.NewAddressPubKey(serializedPubKey, &chaincfg.TestNet3Params)
+				return ltcutil.NewAddressPubKey(serializedPubKey, &paramsLtcTestnet)
 			},
-			net: &chaincfg.TestNet3Params,
+			net: &paramsLtcTestnet,
 		},
 		{
 			name: "testnet p2pk uncompressed (0x04)",
@@ -448,7 +473,7 @@ func TestAddresses(t *testing.T) {
 					0xf9, 0x74, 0x44, 0x64, 0xf8, 0x2e, 0x16, 0x0b, 0xfa, 0x9b,
 					0x8b, 0x64, 0xf9, 0xd4, 0xc0, 0x3f, 0x99, 0x9b, 0x86, 0x43,
 					0xf6, 0x56, 0xb4, 0x12, 0xa3},
-				ltcutil.PKFUncompressed, chaincfg.TestNet3Params.PubKeyHashAddrID),
+				ltcutil.PKFUncompressed, chaincfg.TestNet4Params.PubKeyHashAddrID),
 			f: func() (ltcutil.Address, error) {
 				serializedPubKey := []byte{
 					0x04, 0x11, 0xdb, 0x93, 0xe1, 0xdc, 0xdb, 0x8a, 0x01, 0x6b,
@@ -458,9 +483,9 @@ func TestAddresses(t *testing.T) {
 					0xf9, 0x74, 0x44, 0x64, 0xf8, 0x2e, 0x16, 0x0b, 0xfa, 0x9b,
 					0x8b, 0x64, 0xf9, 0xd4, 0xc0, 0x3f, 0x99, 0x9b, 0x86, 0x43,
 					0xf6, 0x56, 0xb4, 0x12, 0xa3}
-				return ltcutil.NewAddressPubKey(serializedPubKey, &chaincfg.TestNet3Params)
+				return ltcutil.NewAddressPubKey(serializedPubKey, &chaincfg.TestNet4Params)
 			},
-			net: &chaincfg.TestNet3Params,
+			net: &chaincfg.TestNet4Params,
 		},
 		{
 			name: "testnet p2pk hybrid (0x06)",
@@ -477,7 +502,7 @@ func TestAddresses(t *testing.T) {
 					0x96, 0x85, 0x26, 0x62, 0xce, 0x6a, 0x84, 0x7b, 0x19, 0x73,
 					0x76, 0x83, 0x01, 0x60, 0xc6, 0xd2, 0xeb, 0x5e, 0x6a, 0x4c,
 					0x44, 0xd3, 0x3f, 0x45, 0x3e},
-				ltcutil.PKFHybrid, chaincfg.TestNet3Params.PubKeyHashAddrID),
+				ltcutil.PKFHybrid, paramsLtcTestnet.PubKeyHashAddrID),
 			f: func() (ltcutil.Address, error) {
 				serializedPubKey := []byte{
 					0x06, 0x19, 0x2d, 0x74, 0xd0, 0xcb, 0x94, 0x34, 0x4c, 0x95,
@@ -487,9 +512,9 @@ func TestAddresses(t *testing.T) {
 					0x96, 0x85, 0x26, 0x62, 0xce, 0x6a, 0x84, 0x7b, 0x19, 0x73,
 					0x76, 0x83, 0x01, 0x60, 0xc6, 0xd2, 0xeb, 0x5e, 0x6a, 0x4c,
 					0x44, 0xd3, 0x3f, 0x45, 0x3e}
-				return ltcutil.NewAddressPubKey(serializedPubKey, &chaincfg.TestNet3Params)
+				return ltcutil.NewAddressPubKey(serializedPubKey, &paramsLtcTestnet)
 			},
-			net: &chaincfg.TestNet3Params,
+			net: &paramsLtcTestnet,
 		},
 		{
 			name: "testnet p2pk hybrid (0x07)",
@@ -506,7 +531,7 @@ func TestAddresses(t *testing.T) {
 					0x8a, 0x7e, 0xf8, 0xbd, 0x3b, 0x3c, 0xfb, 0x1e, 0xdb, 0x71,
 					0x17, 0xab, 0x65, 0x12, 0x9b, 0x8a, 0x2e, 0x68, 0x1f, 0x3c,
 					0x1e, 0x09, 0x08, 0xef, 0x7b},
-				ltcutil.PKFHybrid, chaincfg.TestNet3Params.PubKeyHashAddrID),
+				ltcutil.PKFHybrid, paramsLtcTestnet.PubKeyHashAddrID),
 			f: func() (ltcutil.Address, error) {
 				serializedPubKey := []byte{
 					0x07, 0xb0, 0xbd, 0x63, 0x42, 0x34, 0xab, 0xbb, 0x1b, 0xa1,
@@ -516,9 +541,9 @@ func TestAddresses(t *testing.T) {
 					0x8a, 0x7e, 0xf8, 0xbd, 0x3b, 0x3c, 0xfb, 0x1e, 0xdb, 0x71,
 					0x17, 0xab, 0x65, 0x12, 0x9b, 0x8a, 0x2e, 0x68, 0x1f, 0x3c,
 					0x1e, 0x09, 0x08, 0xef, 0x7b}
-				return ltcutil.NewAddressPubKey(serializedPubKey, &chaincfg.TestNet3Params)
+				return ltcutil.NewAddressPubKey(serializedPubKey, &paramsLtcTestnet)
 			},
-			net: &chaincfg.TestNet3Params,
+			net: &paramsLtcTestnet,
 		},
 		// Segwit address tests.
 		{
@@ -531,17 +556,17 @@ func TestAddresses(t *testing.T) {
 				[20]byte{
 					0x75, 0x1e, 0x76, 0xe8, 0x19, 0x91, 0x96, 0xd4, 0x54, 0x94,
 					0x1c, 0x45, 0xd1, 0xb3, 0xa3, 0x23, 0xf1, 0x43, 0x3b, 0xd6},
-				chaincfg.MainNetParams.Bech32HRPSegwit),
+				paramsBtc.Bech32HRPSegwit),
 			f: func() (ltcutil.Address, error) {
 				pkHash := []byte{
 					0x75, 0x1e, 0x76, 0xe8, 0x19, 0x91, 0x96, 0xd4, 0x54, 0x94,
 					0x1c, 0x45, 0xd1, 0xb3, 0xa3, 0x23, 0xf1, 0x43, 0x3b, 0xd6}
-				return ltcutil.NewAddressWitnessPubKeyHash(pkHash, &chaincfg.MainNetParams)
+				return ltcutil.NewAddressWitnessPubKeyHash(pkHash, &paramsBtc)
 			},
-			net: &chaincfg.MainNetParams,
+			net: &paramsBtc,
 		},
 		{
-			name:    "segwit mainnet p2wsh v0",
+			name:    "segwit mainnet p2wsh v01",
 			addr:    "bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3",
 			encoded: "bc1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3qccfmv3",
 			valid:   true,
@@ -552,19 +577,19 @@ func TestAddresses(t *testing.T) {
 					0x04, 0xbd, 0x19, 0x20, 0x33, 0x56, 0xda, 0x13,
 					0x6c, 0x98, 0x56, 0x78, 0xcd, 0x4d, 0x27, 0xa1,
 					0xb8, 0xc6, 0x32, 0x96, 0x04, 0x90, 0x32, 0x62},
-				chaincfg.MainNetParams.Bech32HRPSegwit),
+				paramsBtc.Bech32HRPSegwit),
 			f: func() (ltcutil.Address, error) {
 				scriptHash := []byte{
 					0x18, 0x63, 0x14, 0x3c, 0x14, 0xc5, 0x16, 0x68,
 					0x04, 0xbd, 0x19, 0x20, 0x33, 0x56, 0xda, 0x13,
 					0x6c, 0x98, 0x56, 0x78, 0xcd, 0x4d, 0x27, 0xa1,
 					0xb8, 0xc6, 0x32, 0x96, 0x04, 0x90, 0x32, 0x62}
-				return ltcutil.NewAddressWitnessScriptHash(scriptHash, &chaincfg.MainNetParams)
+				return ltcutil.NewAddressWitnessScriptHash(scriptHash, &paramsBtc)
 			},
-			net: &chaincfg.MainNetParams,
+			net: &paramsBtc,
 		},
 		{
-			name:    "segwit testnet p2wpkh v0",
+			name:    "segwit testnet p2wpkh v02",
 			addr:    "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx",
 			encoded: "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx",
 			valid:   true,
@@ -573,14 +598,14 @@ func TestAddresses(t *testing.T) {
 				[20]byte{
 					0x75, 0x1e, 0x76, 0xe8, 0x19, 0x91, 0x96, 0xd4, 0x54, 0x94,
 					0x1c, 0x45, 0xd1, 0xb3, 0xa3, 0x23, 0xf1, 0x43, 0x3b, 0xd6},
-				chaincfg.TestNet3Params.Bech32HRPSegwit),
+				paramsBtcTestnet.Bech32HRPSegwit),
 			f: func() (ltcutil.Address, error) {
 				pkHash := []byte{
 					0x75, 0x1e, 0x76, 0xe8, 0x19, 0x91, 0x96, 0xd4, 0x54, 0x94,
 					0x1c, 0x45, 0xd1, 0xb3, 0xa3, 0x23, 0xf1, 0x43, 0x3b, 0xd6}
-				return ltcutil.NewAddressWitnessPubKeyHash(pkHash, &chaincfg.TestNet3Params)
+				return ltcutil.NewAddressWitnessPubKeyHash(pkHash, &paramsBtcTestnet)
 			},
-			net: &chaincfg.TestNet3Params,
+			net: &paramsBtcTestnet,
 		},
 		{
 			name:    "segwit testnet p2wsh v0",
@@ -594,16 +619,16 @@ func TestAddresses(t *testing.T) {
 					0x04, 0xbd, 0x19, 0x20, 0x33, 0x56, 0xda, 0x13,
 					0x6c, 0x98, 0x56, 0x78, 0xcd, 0x4d, 0x27, 0xa1,
 					0xb8, 0xc6, 0x32, 0x96, 0x04, 0x90, 0x32, 0x62},
-				chaincfg.TestNet3Params.Bech32HRPSegwit),
+				paramsBtcTestnet.Bech32HRPSegwit),
 			f: func() (ltcutil.Address, error) {
 				scriptHash := []byte{
 					0x18, 0x63, 0x14, 0x3c, 0x14, 0xc5, 0x16, 0x68,
 					0x04, 0xbd, 0x19, 0x20, 0x33, 0x56, 0xda, 0x13,
 					0x6c, 0x98, 0x56, 0x78, 0xcd, 0x4d, 0x27, 0xa1,
 					0xb8, 0xc6, 0x32, 0x96, 0x04, 0x90, 0x32, 0x62}
-				return ltcutil.NewAddressWitnessScriptHash(scriptHash, &chaincfg.TestNet3Params)
+				return ltcutil.NewAddressWitnessScriptHash(scriptHash, &paramsBtcTestnet)
 			},
-			net: &chaincfg.TestNet3Params,
+			net: &paramsBtcTestnet,
 		},
 		{
 			name:    "segwit testnet p2wsh witness v0",
@@ -617,16 +642,16 @@ func TestAddresses(t *testing.T) {
 					0x21, 0xb2, 0xa1, 0x87, 0x90, 0x5e, 0x52, 0x66,
 					0x36, 0x2b, 0x99, 0xd5, 0xe9, 0x1c, 0x6c, 0xe2,
 					0x4d, 0x16, 0x5d, 0xab, 0x93, 0xe8, 0x64, 0x33},
-				chaincfg.TestNet3Params.Bech32HRPSegwit),
+				paramsBtcTestnet.Bech32HRPSegwit),
 			f: func() (ltcutil.Address, error) {
 				scriptHash := []byte{
 					0x00, 0x00, 0x00, 0xc4, 0xa5, 0xca, 0xd4, 0x62,
 					0x21, 0xb2, 0xa1, 0x87, 0x90, 0x5e, 0x52, 0x66,
 					0x36, 0x2b, 0x99, 0xd5, 0xe9, 0x1c, 0x6c, 0xe2,
 					0x4d, 0x16, 0x5d, 0xab, 0x93, 0xe8, 0x64, 0x33}
-				return ltcutil.NewAddressWitnessScriptHash(scriptHash, &chaincfg.TestNet3Params)
+				return ltcutil.NewAddressWitnessScriptHash(scriptHash, &paramsBtcTestnet)
 			},
-			net: &chaincfg.TestNet3Params,
+			net: &paramsBtcTestnet,
 		},
 		// Unsupported witness versions (version 0 only supported at this point)
 		{
@@ -652,7 +677,7 @@ func TestAddresses(t *testing.T) {
 			name:  "segwit invalid hrp",
 			addr:  "tc1qw508d6qejxtdg4y5r3zarvary0c5xw7kg3g4ty",
 			valid: false,
-			net:   &chaincfg.TestNet3Params,
+			net:   &chaincfg.TestNet4Params,
 		},
 		{
 			name:  "segwit invalid checksum",
@@ -688,19 +713,19 @@ func TestAddresses(t *testing.T) {
 			name:  "segwit mixed case",
 			addr:  "tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3q0sL5k7",
 			valid: false,
-			net:   &chaincfg.TestNet3Params,
+			net:   &chaincfg.TestNet4Params,
 		},
 		{
 			name:  "segwit zero padding of more than 4 bits",
 			addr:  "tb1pw508d6qejxtdg4y5r3zarqfsj6c3",
 			valid: false,
-			net:   &chaincfg.TestNet3Params,
+			net:   &chaincfg.TestNet4Params,
 		},
 		{
 			name:  "segwit non-zero padding in 8-to-5 conversion",
 			addr:  "tb1qrp33g0q5c5txsp9arysrx4k6zdkfs4nce4xj0gdcccefvpysxf3pjxtptv",
 			valid: false,
-			net:   &chaincfg.TestNet3Params,
+			net:   &chaincfg.TestNet4Params,
 		},
 	}
 

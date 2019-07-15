@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/btcsuite/golangcrypto/ripemd160"
+	"golang.org/x/crypto/ripemd160"
 	"github.com/ltcsuite/ltcd/btcec"
 	"github.com/ltcsuite/ltcd/chaincfg"
 	"github.com/ltcsuite/ltcutil/base58"
