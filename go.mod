@@ -1,4 +1,4 @@
-module github.com/Wowee0/ltcutil
+module github.com/ltcsuite/ltcutil
 
 go 1.12
 
