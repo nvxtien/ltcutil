@@ -13,55 +13,65 @@ import (
 	"testing"
 
 	"github.com/ltcsuite/ltcd/chaincfg"
+	"github.com/ltcsuite/ltcd/wire"
 	"github.com/ltcsuite/ltcutil"
 	"golang.org/x/crypto/ripemd160"
 )
 
 type CustomParamStruct struct {
+	Net              wire.BitcoinNet
 	PubKeyHashAddrID byte
 	ScriptHashAddrID byte
-	Bech32HRPSegwit string
+	Bech32HRPSegwit  string
+}
+
+var CustomParams = CustomParamStruct{
+	Net:              0xdbb6c0fb, // litecoin mainnet HD version bytes
+	PubKeyHashAddrID: 0x30,       // starts with L
+	ScriptHashAddrID: 0x32,       // starts with M
+	Bech32HRPSegwit:  "ltc",      // starts with ltc
 }
 
 // We use this function to be able to test functionality in DecodeAddress for
 // defaultNet addresses
 func applyCustomParams(params chaincfg.Params, customParams CustomParamStruct) chaincfg.Params {
-    newParams := params
-	newParams.PubKeyHashAddrID = customParams.PubKeyHashAddrID
-	newParams.ScriptHashAddrID = customParams.ScriptHashAddrID
-	newParams.Bech32HRPSegwit  = customParams.Bech32HRPSegwit
-	return newParams
+	params.Net = customParams.Net
+	params.PubKeyHashAddrID = customParams.PubKeyHashAddrID
+	params.ScriptHashAddrID = customParams.ScriptHashAddrID
+	params.Bech32HRPSegwit = customParams.Bech32HRPSegwit
+	return params
 }
 
+var customParams = applyCustomParams(chaincfg.MainNetParams, CustomParams)
 
 func TestAddresses(t *testing.T) {
-    var paramsLtc = applyCustomParams(chaincfg.MainNetParams, CustomParamStruct{
-	    PubKeyHashAddrID: 0x30, // starts with L
-	    ScriptHashAddrID: 0x32, // starts with M
-	    Bech32HRPSegwit:  "ltc", // always ltc for main net
-    })
+	var paramsLtc = applyCustomParams(chaincfg.MainNetParams, CustomParamStruct{
+		PubKeyHashAddrID: 0x30,  // starts with L
+		ScriptHashAddrID: 0x32,  // starts with M
+		Bech32HRPSegwit:  "ltc", // always ltc for main net
+	})
 
-    var paramsLtcTestnet = applyCustomParams(chaincfg.MainNetParams, CustomParamStruct{
-	    PubKeyHashAddrID: 0x6F, // starts with m or n
-	    ScriptHashAddrID: 0x3A, // starts with Q
-	    Bech32HRPSegwit:  "tltc", // always tltc for test net
-    })
+	var paramsLtcTestnet = applyCustomParams(chaincfg.MainNetParams, CustomParamStruct{
+		PubKeyHashAddrID: 0x6F,   // starts with m or n
+		ScriptHashAddrID: 0x3A,   // starts with Q
+		Bech32HRPSegwit:  "tltc", // always tltc for test net
+	})
 
-    var paramsBtc = applyCustomParams(chaincfg.MainNetParams, CustomParamStruct{
-	    PubKeyHashAddrID: 0x00, // starts with 1
-	    ScriptHashAddrID: 0x05, // starts with 3
-	    Bech32HRPSegwit:  "bc", // always bc for main net
-    })
-    paramsBtc.Net = 0xd9b4bef9          // bitcoin MainNet
-    chaincfg.Register(&paramsBtc)
+	var paramsBtc = applyCustomParams(chaincfg.MainNetParams, CustomParamStruct{
+		PubKeyHashAddrID: 0x00, // starts with 1
+		ScriptHashAddrID: 0x05, // starts with 3
+		Bech32HRPSegwit:  "bc", // always bc for main net
+	})
+	paramsBtc.Net = 0xd9b4bef9 // bitcoin MainNet
+	chaincfg.Register(&paramsBtc)
 
-    var paramsBtcTestnet = applyCustomParams(chaincfg.MainNetParams, CustomParamStruct{
-	    PubKeyHashAddrID: 0x6F, // starts with m or n
-	    ScriptHashAddrID: 0xC4, // starts with 2
-	    Bech32HRPSegwit:  "tb", // always tb for test net
-    })
-    paramsBtcTestnet.Net = 0x0709110b   // bitcoin TestNet3
-    chaincfg.Register(&paramsBtcTestnet)
+	var paramsBtcTestnet = applyCustomParams(chaincfg.MainNetParams, CustomParamStruct{
+		PubKeyHashAddrID: 0x6F, // starts with m or n
+		ScriptHashAddrID: 0xC4, // starts with 2
+		Bech32HRPSegwit:  "tb", // always tb for test net
+	})
+	paramsBtcTestnet.Net = 0x0709110b // bitcoin TestNet3
+	chaincfg.Register(&paramsBtcTestnet)
 
 	tests := []struct {
 		name    string
@@ -653,6 +663,26 @@ func TestAddresses(t *testing.T) {
 			},
 			net: &paramsBtcTestnet,
 		},
+		{
+			name:    "segwit litecoin mainnet p2wpkh v0",
+			addr:    "LTC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KGMN4N9",
+			encoded: "ltc1qw508d6qejxtdg4y5r3zarvary0c5xw7kgmn4n9",
+			valid:   true,
+			result: ltcutil.TstAddressWitnessPubKeyHash(
+				0,
+				[20]byte{
+					0x75, 0x1e, 0x76, 0xe8, 0x19, 0x91, 0x96, 0xd4, 0x54, 0x94,
+					0x1c, 0x45, 0xd1, 0xb3, 0xa3, 0x23, 0xf1, 0x43, 0x3b, 0xd6},
+				CustomParams.Bech32HRPSegwit,
+			),
+			f: func() (ltcutil.Address, error) {
+				pkHash := []byte{
+					0x75, 0x1e, 0x76, 0xe8, 0x19, 0x91, 0x96, 0xd4, 0x54, 0x94,
+					0x1c, 0x45, 0xd1, 0xb3, 0xa3, 0x23, 0xf1, 0x43, 0x3b, 0xd6}
+				return ltcutil.NewAddressWitnessPubKeyHash(pkHash, &customParams)
+			},
+			net: &customParams,
+		},
 		// Unsupported witness versions (version 0 only supported at this point)
 		{
 			name:  "segwit mainnet witness v1",
@@ -727,6 +757,10 @@ func TestAddresses(t *testing.T) {
 			valid: false,
 			net:   &chaincfg.TestNet4Params,
 		},
+	}
+
+	if err := chaincfg.Register(&customParams); err != nil {
+		panic(err)
 	}
 
 	for _, test := range tests {

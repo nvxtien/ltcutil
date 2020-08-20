@@ -4,8 +4,15 @@ go 1.13
 
 require (
 	github.com/aead/siphash v1.0.1
-	github.com/davecgh/go-spew v0.0.0-20171005155431-ecdeabc65495
+	github.com/davecgh/go-spew v1.1.1
+	github.com/fsnotify/fsnotify v1.4.9 // indirect
+	github.com/golang/protobuf v1.4.2 // indirect
+	github.com/hpcloud/tail v1.0.0 // indirect
 	github.com/kkdai/bstream v1.0.0
 	github.com/ltcsuite/ltcd v0.20.1-beta
-	golang.org/x/crypto v0.0.0-20200115085410-6d4e4cb37c7d
+	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
+	gopkg.in/fsnotify.v1 v1.4.7 // indirect
+	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 )
+
+replace github.com/ltcsuite/ltcd => ../ltcd

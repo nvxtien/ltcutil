@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/ltcsuite/ltcd/chaincfg/chainhash"
 	"github.com/ltcsuite/ltcd/wire"
 	"github.com/ltcsuite/ltcutil"
-	"github.com/davecgh/go-spew/spew"
 )
 
 // TestBlock tests the API for Block.
@@ -145,10 +145,10 @@ func TestBlock(t *testing.T) {
 
 	// Transaction offsets and length for the transaction in Block100000.
 	wantTxLocs := []wire.TxLoc{
-		{TxStart: 81, TxLen: 135},
-		{TxStart: 216, TxLen: 259},
-		{TxStart: 475, TxLen: 257},
-		{TxStart: 732, TxLen: 225},
+		{TxStart: 81, TxLen: 144},
+		{TxStart: 225, TxLen: 259},
+		{TxStart: 484, TxLen: 257},
+		{TxStart: 741, TxLen: 225},
 	}
 
 	// Ensure the transaction location information is accurate.
@@ -270,7 +270,7 @@ func TestBlockErrors(t *testing.T) {
 		t.Errorf("TxHash: wrong error - got: %v <%T>, "+
 			"want: <%T>", err, err, ltcutil.OutOfRangeError(""))
 	}
-	_, err = b.TxHash(len(Block100000.Transactions) + 1)
+	_, err = b.TxHash(len(Block100000.Transactions))
 	if _, ok := err.(ltcutil.OutOfRangeError); !ok {
 		t.Errorf("TxHash: wrong error - got: %v <%T>, "+
 			"want: <%T>", err, err, ltcutil.OutOfRangeError(""))
@@ -282,7 +282,7 @@ func TestBlockErrors(t *testing.T) {
 		t.Errorf("Tx: wrong error - got: %v <%T>, "+
 			"want: <%T>", err, err, ltcutil.OutOfRangeError(""))
 	}
-	_, err = b.Tx(len(Block100000.Transactions) + 1)
+	_, err = b.Tx(len(Block100000.Transactions))
 	if _, ok := err.(ltcutil.OutOfRangeError); !ok {
 		t.Errorf("Tx: wrong error - got: %v <%T>, "+
 			"want: <%T>", err, err, ltcutil.OutOfRangeError(""))
@@ -333,6 +333,10 @@ var Block100000 = wire.MsgBlock{
 						0x04, 0x4c, 0x86, 0x04, 0x1b, 0x02, 0x06, 0x02,
 					},
 					Sequence: 0xffffffff,
+					Witness: [][]byte{
+						{0x04, 0x31},
+						{0x01, 0x43},
+					},
 				},
 			},
 			TxOut: []*wire.TxOut{
