@@ -9,10 +9,10 @@ import (
 	"math"
 	"sync"
 
-	"github.com/ltcsuite/ltcd/chaincfg/chainhash"
-	"github.com/ltcsuite/ltcd/txscript"
-	"github.com/ltcsuite/ltcd/wire"
-	"github.com/ltcsuite/ltcutil"
+	"github.com/tatumio/ltcd/chaincfg/chainhash"
+	"github.com/tatumio/ltcd/txscript"
+	"github.com/tatumio/ltcd/wire"
+	"github.com/nvxtien/ltcutil"
 )
 
 // ln2Squared is simply the square of the natural log of 2.

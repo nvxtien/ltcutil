@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/ltcsuite/ltcd/chaincfg/chainhash"
-	"github.com/ltcsuite/ltcd/wire"
-	"github.com/ltcsuite/ltcutil"
+	"github.com/tatumio/ltcd/chaincfg/chainhash"
+	"github.com/tatumio/ltcd/wire"
+	"github.com/nvxtien/ltcutil"
 )
 
 // TestBlock tests the API for Block.

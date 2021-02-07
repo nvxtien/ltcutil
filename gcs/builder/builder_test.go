@@ -9,13 +9,13 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/ltcsuite/ltcd/chaincfg"
-	"github.com/ltcsuite/ltcd/chaincfg/chainhash"
-	"github.com/ltcsuite/ltcd/txscript"
-	"github.com/ltcsuite/ltcd/wire"
-	"github.com/ltcsuite/ltcutil"
-	"github.com/ltcsuite/ltcutil/gcs"
-	"github.com/ltcsuite/ltcutil/gcs/builder"
+	"github.com/tatumio/ltcd/chaincfg"
+	"github.com/tatumio/ltcd/chaincfg/chainhash"
+	"github.com/tatumio/ltcd/txscript"
+	"github.com/tatumio/ltcd/wire"
+	"github.com/nvxtien/ltcutil"
+	"github.com/nvxtien/ltcutil/gcs"
+	"github.com/nvxtien/ltcutil/gcs/builder"
 )
 
 var (

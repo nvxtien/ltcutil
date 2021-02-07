@@ -10,10 +10,10 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/ltcsuite/ltcd/chaincfg/chainhash"
-	"github.com/ltcsuite/ltcd/txscript"
-	"github.com/ltcsuite/ltcd/wire"
-	"github.com/ltcsuite/ltcutil/gcs"
+	"github.com/tatumio/ltcd/chaincfg/chainhash"
+	"github.com/tatumio/ltcd/txscript"
+	"github.com/tatumio/ltcd/wire"
+	"github.com/nvxtien/ltcutil/gcs"
 )
 
 const (

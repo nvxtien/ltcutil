@@ -14,7 +14,7 @@ import (
 
 	"io"
 
-	"github.com/ltcsuite/ltcd/wire"
+	"github.com/tatumio/ltcd/wire"
 )
 
 // psbtMagicLength is the length of the magic bytes used to signal the start of

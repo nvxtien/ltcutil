@@ -8,7 +8,7 @@ import (
 	"math"
 	"testing"
 
-	. "github.com/ltcsuite/ltcutil"
+	. "github.com/nvxtien/ltcutil"
 )
 
 func TestAmountCreation(t *testing.T) {
